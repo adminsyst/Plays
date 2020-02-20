@@ -1,0 +1,68 @@
+---
+- hosts: all
+  gather_facts: false
+  connection: local
+#  user: remote
+#  sudo: true
+
+  vars_prompt:
+    - name: "vcenter_hostname"
+      prompt: "Enter vcenter hostname"
+      private: no
+      default: "10.128.248.3"
+    - name: "vcenter_user"
+      prompt: "Enter vcenter username"
+      private: no
+      default: "MEDITEL/M1374"
+    - name: "vcenter_pass"
+      prompt: "Enter vcenter password"
+      private: yes
+
+  vars:
+    datacenter: 'MEDITEL'
+    esxi_host: '10.128.37.42'
+    cluster: 'CLUSTER_LABs'
+    template: Template_CentOS7.6
+    resource_pool: vAPP_LABs
+    notes: 'Created by Ansible'
+    ansible_host: '10.128.249.180'
+
+  tasks:
+# Create a VM from a template
+  - name: create the VM
+    vmware_guest:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_user }}"
+        password: "{{ vcenter_pass }}"
+        name: "{{ inventory_hostname }}"
+        validate_certs: no
+#        esxi_hostname: "{{esxi_host }}"
+        cluster: "{{cluster }}"
+        resource_pool: "{{ resource_pool }}"
+        datacenter: "{{datacenter }}"
+        state: poweredon
+        folder: /
+        guest_id: rhel7_64Guest
+        disk:
+        - size_gb: "{{ disk }}"
+          type: thin
+          datastore: "{{ datastore }}"
+        hardware:
+          memory_mb: "{{ memory }}"
+          num_cpus: "{{ cpucount }}"
+          scsi: paravirtual
+        networks:
+        - name: "{{ network }}"
+          ip: "{{ ip }}"
+          netmask: 255.255.255.0
+          gateway: 10.128.250.1
+#          mac: 'aa:bb:dd:aa:00:14'
+        template: "{{ template }}"
+#        wait_for_ip_address: yes
+        #register: deploy
+
+### wait for VM te be reachable
+  - name: Wait 300 seconds, but only start checking after 60 seconds
+    wait_for_connection:
+      delay: 60
+      timeout: 300
